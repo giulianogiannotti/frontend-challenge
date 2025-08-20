@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Product } from "../types/Product";
 import "./ProductCard.css";
@@ -7,6 +8,8 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+
   // Handle product status display
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -19,7 +22,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <span className="status-badge status-inactive l1">No disponible</span>
         );
       case "pending":
-        // ✅ Cambio texto y estilo para pending
         return (
           <span className="status-badge status-pending l1">
             ⏳ Proximamente
@@ -30,26 +32,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }
   };
 
-  // Format price for display
-  const formatPrice = (price: number) => {
-    return `$${price.toLocaleString()}`; // Missing currency and proper formatting
-  };
+  const formatPrice = (price: number) => `$${price.toLocaleString()}`;
 
-  // Check stock availability
   const getStockStatus = (stock: number) => {
-    if (stock === 0) {
+    if (stock === 0)
       return <span className="stock-status out-of-stock l1">Sin stock</span>;
-    } else if (stock < 10) {
+    if (stock < 10)
       return (
         <span className="stock-status low-stock l1">Stock bajo ({stock})</span>
       );
-    }
     return (
       <span className="stock-status in-stock l1">{stock} disponibles</span>
     );
   };
 
-  // Calculate discount percentage
   const getDiscountPrice = () => {
     if (product.priceBreaks && product.priceBreaks.length > 1) {
       const bestDiscount = product.priceBreaks[product.priceBreaks.length - 1];
@@ -61,18 +57,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <div className="product-card">
       <Link to={`/product/${product.id}`} className="product-link">
-        {/* Product Image */}
         <div className="product-image">
-          {/* Bug: no real image handling */}
           <div className="image-placeholder">
             <span className="material-icons">image</span>
           </div>
-
-          {/* Status Badge */}
           <div className="product-status">{getStatusBadge(product.status)}</div>
         </div>
 
-        {/* Product Info */}
         <div className="product-info">
           <div className="product-header">
             <h3 className="product-name p1-medium">{product.name}</h3>
@@ -84,11 +75,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
               <span className="material-icons">category</span>
               <span className="l1">{product.category}</span>
             </div>
-
             {getStockStatus(product.stock)}
           </div>
 
-          {/* Features - Bug: displays all features without limit */}
           {product.features && (
             <div className="product-features">
               {product.features.map((feature, index) => (
@@ -99,7 +88,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </div>
           )}
 
-          {/* Colors */}
           {product.colors && product.colors.length > 0 && (
             <div className="product-colors">
               <span className="colors-label l1">
@@ -120,7 +108,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </Link>
 
-      {/* Product Footer */}
       <div className="product-footer">
         <div className="price-section">
           <div className="current-price p1-medium">
@@ -141,7 +128,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             className="btn btn-secondary l1"
             onClick={(e) => {
               e.preventDefault();
-              alert("Función de cotización por implementar");
+              setShowQuoteModal(true);
             }}
           >
             <span className="material-icons">calculate</span>
@@ -149,6 +136,43 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </button>
         </div>
       </div>
+
+      {/* Quote Modal */}
+      {showQuoteModal && (
+        <div className="modal-overlay" onClick={() => setShowQuoteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Cotización de {product.name}</h2>
+
+            <form className="company-form">
+              <input type="text" placeholder="Nombre de la empresa" />
+              <input type="email" placeholder="Email" />
+              <input type="number" placeholder="Cantidad" min={1} />
+              <textarea
+                placeholder="Comentarios adicionales"
+                rows={3}
+              ></textarea>
+            </form>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  alert("Cotización enviada!");
+                  setShowQuoteModal(false);
+                }}
+              >
+                Enviar
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowQuoteModal(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

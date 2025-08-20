@@ -3,9 +3,17 @@ import { Product } from "../types/Product";
 import { useCart } from "../context/CartContext";
 import "./PricingCalculator.css";
 import { useToast } from "../context/ToastContext";
+import jsPDF from "jspdf";
 
 interface PricingCalculatorProps {
   product: Product;
+}
+
+interface CompanyInfo {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
 }
 
 const PricingCalculator = ({ product }: PricingCalculatorProps) => {
@@ -14,14 +22,25 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
   const { addToCart } = useCart();
   const { addToast } = useToast();
 
-  // Calculate best pricing for quantity
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [company, setCompany] = useState<CompanyInfo>({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCompany((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // --- Pricing Calculations ---
   const calculatePrice = (qty: number) => {
     if (!product.priceBreaks || product.priceBreaks.length === 0) {
       return product.basePrice * qty;
     }
 
-    // Find applicable price break
-    // Ordenar de menor a mayor cantidad mínima
     const sortedBreaks = [...product.priceBreaks].sort(
       (a, b) => a.minQty - b.minQty
     );
@@ -36,38 +55,48 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
     return applicableBreak.price * qty;
   };
 
-  // Calculate discount amount
   const getDiscount = (qty: number) => {
-    if (!product.priceBreaks || product.priceBreaks.length === 0) {
-      return 0;
-    }
-
+    if (!product.priceBreaks || product.priceBreaks.length === 0) return 0;
     const baseTotal = product.basePrice * qty;
     const discountedTotal = calculatePrice(qty);
-
-    // Calculate savings percentage
     return ((baseTotal - discountedTotal) / baseTotal) * 100;
   };
 
-  // Format price display
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("es-CL", {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("es-CL", {
       style: "currency",
       currency: "CLP",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
-  };
 
   const currentPrice = calculatePrice(quantity);
   const discountPercent = getDiscount(quantity);
-
-  // Cantidad máxima para el producto
-  // Si no hay maxQuantity, usa stock o un valor por defecto
   const maxQty = product.maxQuantity || product.stock || 10000;
+
+  // --- PDF Export ---
+  const exportQuote = () => {
+    const doc = new jsPDF();
+    doc.text(`Cotización para ${company.name}`, 10, 10);
+    doc.text(`Email: ${company.email}`, 10, 20);
+    doc.text(`Teléfono: ${company.phone}`, 10, 30);
+    if (company.address) doc.text(`Dirección: ${company.address}`, 10, 40);
+    doc.text(`Producto: ${product.name}`, 10, 50);
+    doc.text(`Cantidad: ${quantity} unidades`, 10, 60);
+    doc.text(
+      `Precio unitario: ${formatPrice(currentPrice / quantity)}`,
+      10,
+      70
+    );
+    if (discountPercent > 0)
+      doc.text(`Descuento: ${discountPercent.toFixed(1)}%`, 10, 80);
+    doc.text(`Total: ${formatPrice(currentPrice)}`, 10, 90);
+    doc.save(`cotizacion_${product.name}.pdf`);
+  };
 
   return (
     <div className="pricing-calculator">
+      {/* --- Header --- */}
       <div className="calculator-header">
         <h3 className="calculator-title p1-medium">Calculadora de Precios</h3>
         <p className="calculator-subtitle l1">
@@ -76,7 +105,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
       </div>
 
       <div className="calculator-content">
-        {/* Quantity Input */}
+        {/* --- Quantity Input --- */}
         <div className="quantity-section">
           <label className="quantity-label p1-medium">Cantidad</label>
           <div className="quantity-input-group">
@@ -85,7 +114,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
               value={quantity}
               onChange={(e) => {
                 const val = parseInt(e.target.value) || 1;
-                setQuantity(Math.min(Math.max(1, val), maxQty)); // limita entre 1 y maxQty
+                setQuantity(Math.min(Math.max(1, val), maxQty));
               }}
               className="quantity-input p1"
               min="1"
@@ -95,7 +124,7 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </div>
         </div>
 
-        {/* Price Breaks */}
+        {/* --- Price Breaks --- */}
         {product.priceBreaks && product.priceBreaks.length > 0 && (
           <div className="price-breaks-section">
             <h4 className="breaks-title p1-medium">Descuentos por volumen</h4>
@@ -133,12 +162,12 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </div>
         )}
 
-        {/* Price Summary */}
+        {/* --- Price Summary --- */}
         <div className="price-summary">
           <div className="summary-row">
             <span className="summary-label p1">Precio unitario:</span>
             <span className="summary-value p1-medium">
-              {formatPrice(calculatePrice(quantity) / quantity)}
+              {formatPrice(currentPrice / quantity)}
             </span>
           </div>
 
@@ -164,16 +193,11 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* --- Actions --- */}
         <div className="calculator-actions">
           <button
             className="btn btn-secondary cta1"
-            onClick={() => {
-              // Handle quote request
-              alert(
-                `Cotización solicitada para ${quantity} unidades de ${product.name}`
-              );
-            }}
+            onClick={() => setIsModalOpen(true)}
           >
             <span className="material-icons">email</span>
             Solicitar cotización oficial
@@ -196,34 +220,73 @@ const PricingCalculator = ({ product }: PricingCalculatorProps) => {
             Agregar al carrito
           </button>
         </div>
+      </div>
 
-        {/* Additional Info */}
-        <div className="additional-info">
-          <div className="info-item">
-            <span className="material-icons">local_shipping</span>
-            <div className="info-content">
-              <span className="info-title l1">Envío gratis</span>
-              <span className="info-detail l1">En pedidos sobre $50.000</span>
+      {/* --- Cotización Modal --- */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="p1-medium">Formulario de Cotización</h3>
+
+            {/* Formulario empresa */}
+            <div className="company-form">
+              <input
+                type="text"
+                name="name"
+                placeholder="Nombre de la empresa"
+                value={company.name}
+                onChange={handleInputChange}
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Correo electrónico"
+                value={company.email}
+                onChange={handleInputChange}
+              />
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Teléfono"
+                value={company.phone}
+                onChange={handleInputChange}
+              />
+              <input
+                type="text"
+                name="address"
+                placeholder="Dirección (opcional)"
+                value={company.address}
+                onChange={handleInputChange}
+              />
             </div>
-          </div>
 
-          <div className="info-item">
-            <span className="material-icons">schedule</span>
-            <div className="info-content">
-              <span className="info-title l1">Tiempo de producción</span>
-              <span className="info-detail l1">7-10 días hábiles</span>
+            {/* Resumen */}
+            <div className="quote-summary">
+              <h4 className="p1-medium">Resumen de Cotización</h4>
+              <p>Producto: {product.name}</p>
+              <p>Cantidad: {quantity} unidades</p>
+              <p>Precio unitario: {formatPrice(currentPrice / quantity)}</p>
+              {discountPercent > 0 && (
+                <p>Descuento: {discountPercent.toFixed(1)}%</p>
+              )}
+              <p>Total: {formatPrice(currentPrice)}</p>
             </div>
-          </div>
 
-          <div className="info-item">
-            <span className="material-icons">verified</span>
-            <div className="info-content">
-              <span className="info-title l1">Garantía</span>
-              <span className="info-detail l1">30 días de garantía</span>
+            {/* Botones */}
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={exportQuote}>
+                Exportar a PDF
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

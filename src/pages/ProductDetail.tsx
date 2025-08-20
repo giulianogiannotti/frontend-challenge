@@ -15,13 +15,13 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
   const { addToast } = useToast();
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
 
   useEffect(() => {
     if (id) {
       const foundProduct = products.find((p) => p.id === parseInt(id));
       setProduct(foundProduct || null);
 
-      // Set default selections
       if (foundProduct?.colors && foundProduct.colors.length > 0) {
         setSelectedColor(foundProduct.colors[0]);
       }
@@ -31,7 +31,6 @@ const ProductDetail = () => {
     }
   }, [id]);
 
-  // Handle loading state
   if (!product) {
     return (
       <div className="container">
@@ -50,13 +49,11 @@ const ProductDetail = () => {
     );
   }
 
-  // Validate product status
   const canAddToCart = product.status === "active" && product.stock > 0;
 
   return (
     <div className="product-detail-page">
       <div className="container">
-        {/* Breadcrumb */}
         <nav className="breadcrumb">
           <Link to="/" className="breadcrumb-link l1">
             Catálogo
@@ -66,15 +63,12 @@ const ProductDetail = () => {
         </nav>
 
         <div className="product-detail">
-          {/* Product Images */}
           <div className="product-images">
             <div className="main-image">
               <div className="image-placeholder">
                 <span className="material-icons">image</span>
               </div>
             </div>
-
-            {/* Bug: thumbnails don't work */}
             <div className="image-thumbnails">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="thumbnail">
@@ -84,13 +78,10 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Product Info */}
           <div className="product-details">
             <div className="product-header">
               <h1 className="product-title h2">{product.name}</h1>
               <p className="product-sku p1">SKU: {product.sku}</p>
-
-              {/* Status */}
               <div className="product-status">
                 {product.status === "active" ? (
                   <span className="status-badge status-active l1">
@@ -108,7 +99,6 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Description */}
             {product.description && (
               <div className="product-description">
                 <h3 className="p1-medium">Descripción</h3>
@@ -116,7 +106,6 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Features */}
             {product.features && product.features.length > 0 && (
               <div className="product-features">
                 <h3 className="p1-medium">Características</h3>
@@ -131,10 +120,11 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Color Selection */}
             {product.colors && product.colors.length > 0 && (
               <div className="selection-group">
-                <h3 className="selection-title p1-medium">Color disponibles</h3>
+                <h3 className="selection-title p1-medium">
+                  Colores disponibles
+                </h3>
                 <div className="color-options">
                   {product.colors.map((color) => (
                     <button
@@ -152,7 +142,6 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selection */}
             {product.sizes && product.sizes.length > 0 && (
               <div className="selection-group">
                 <h3 className="selection-title p1-medium">
@@ -174,7 +163,6 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Quick Actions */}
             <div className="product-actions">
               <div className="quantity-selector">
                 <label className="quantity-label l1">Cantidad:</label>
@@ -190,14 +178,12 @@ const ProductDetail = () => {
                     value={quantity}
                     onChange={(e) => {
                       const val = parseInt(e.target.value) || 1;
-                      // Limitar entre 1 y stock
                       setQuantity(Math.min(Math.max(1, val), product.stock));
                     }}
                     className="quantity-input"
-                    min="1"
+                    min={1}
                     max={product.stock}
                   />
-
                   <button
                     onClick={() =>
                       setQuantity(Math.min(quantity + 1, product.stock))
@@ -234,7 +220,7 @@ const ProductDetail = () => {
 
                 <button
                   className="btn btn-secondary cta1"
-                  onClick={() => alert("Función de cotización por implementar")}
+                  onClick={() => setShowQuoteModal(true)}
                 >
                   <span className="material-icons">calculate</span>
                   Solicitar cotización
@@ -244,10 +230,49 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Pricing Calculator */}
         <div className="pricing-section">
           <PricingCalculator product={product} />
         </div>
+
+        {/* Quote Modal */}
+        {showQuoteModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowQuoteModal(false)}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h2>Cotización de {product.name}</h2>
+
+              <form className="company-form">
+                <input type="text" placeholder="Nombre de la empresa" />
+                <input type="email" placeholder="Email" />
+                <input type="number" placeholder="Cantidad" min={1} />
+                <textarea
+                  placeholder="Comentarios adicionales"
+                  rows={3}
+                ></textarea>
+              </form>
+
+              <div className="modal-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    alert("Cotización enviada!");
+                    setShowQuoteModal(false);
+                  }}
+                >
+                  Enviar
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowQuoteModal(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
