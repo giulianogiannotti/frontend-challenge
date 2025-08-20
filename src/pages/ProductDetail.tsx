@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
+import { useCart } from "../context/CartContext";
 import { useParams, Link } from "react-router-dom";
 import { products } from "../data/products";
 import { Product } from "../types/Product";
 import PricingCalculator from "../components/PricingCalculator";
 import "./ProductDetail.css";
+import { useToast } from "../context/ToastContext";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(1);
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (id) {
@@ -211,9 +215,18 @@ const ProductDetail = () => {
                     !canAddToCart ? "disabled" : ""
                   }`}
                   disabled={!canAddToCart}
-                  onClick={() =>
-                    alert("Función de agregar al carrito por implementar")
-                  }
+                  onClick={() => {
+                    addToCart({
+                      product,
+                      quantity,
+                      selectedColor,
+                      selectedSize,
+                    });
+                    addToast({
+                      message: `${product.name} agregado al carrito`,
+                      type: "success",
+                    });
+                  }}
                 >
                   <span className="material-icons">shopping_cart</span>
                   {canAddToCart ? "Agregar al carrito" : "No disponible"}

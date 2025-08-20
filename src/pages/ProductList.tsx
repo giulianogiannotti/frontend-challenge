@@ -12,38 +12,58 @@ const ProductList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("name");
 
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
+  const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({
+    min: 0,
+    max: 0,
+  });
+
   // Filter and sort products based on criteria
-  const filterProducts = (category: string, search: string, sort: string) => {
+  const filterProducts = (
+    category: string,
+    search: string,
+    sort: string,
+    supplier: string = "all",
+    price: { min: number; max: number } = { min: 0, max: 0 }
+  ) => {
     let filtered = [...allProducts];
 
     // Category filter
-    if (category && category !== "all") {
-      filtered = filtered.filter((product) => product.category === category);
-    }
+    if (category !== "all")
+      filtered = filtered.filter((p) => p.category === category);
 
     // Search filter
     if (search) {
       const normalized = search.toLowerCase();
       filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(normalized) ||
-          product.sku.toLowerCase().includes(normalized)
+        (p) =>
+          p.name.toLowerCase().includes(normalized) ||
+          p.sku.toLowerCase().includes(normalized)
       );
     }
 
-    // Sorting logic
+    // Supplier filter
+    if (supplier !== "all")
+      filtered = filtered.filter((p) => p.supplier === supplier);
+
+    // Price range filter
+    if (price.min || price.max) {
+      filtered = filtered.filter(
+        (p) =>
+          p.basePrice >= price.min && (!price.max || p.basePrice <= price.max)
+      );
+    }
+
+    // Sorting
     switch (sort) {
       case "name":
         filtered.sort((a, b) => a.name.localeCompare(b.name));
         break;
       case "price":
-        filtered.sort((a, b) => a.basePrice - b.basePrice); // ascendente
+        filtered.sort((a, b) => a.basePrice - b.basePrice);
         break;
-
       case "stock":
         filtered.sort((a, b) => b.stock - a.stock);
-        break;
-      default:
         break;
     }
 
@@ -63,6 +83,28 @@ const ProductList = () => {
   const handleSortChange = (sort: string) => {
     setSortBy(sort);
     filterProducts(selectedCategory, searchQuery, sort);
+  };
+
+  const handleSupplierChange = (supplier: string) => {
+    setSelectedSupplier(supplier);
+    filterProducts(selectedCategory, searchQuery, sortBy, supplier, priceRange);
+  };
+
+  const handlePriceRangeChange = (min: number, max: number) => {
+    setPriceRange({ min, max });
+    filterProducts(selectedCategory, searchQuery, sortBy, selectedSupplier, {
+      min,
+      max,
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory("all");
+    setSearchQuery("");
+    setSortBy("name");
+    setSelectedSupplier("all");
+    setPriceRange({ min: 0, max: 0 });
+    filterProducts("all", "", "name");
   };
 
   return (
@@ -98,9 +140,14 @@ const ProductList = () => {
           selectedCategory={selectedCategory}
           searchQuery={searchQuery}
           sortBy={sortBy}
+          selectedSupplier={selectedSupplier}
+          priceRange={priceRange}
           onCategoryChange={handleCategoryChange}
           onSearchChange={handleSearchChange}
           onSortChange={handleSortChange}
+          onSupplierChange={handleSupplierChange}
+          onPriceRangeChange={handlePriceRangeChange}
+          onClearFilters={clearAllFilters}
         />
 
         {/* Products Grid */}

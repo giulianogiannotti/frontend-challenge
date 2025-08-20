@@ -4,6 +4,11 @@ import "./ProductFilters.css";
 interface ProductFiltersProps {
   selectedCategory: string;
   searchQuery: string;
+  selectedSupplier: string;
+  priceRange: { min: number; max: number };
+  onSupplierChange: (supplier: string) => void;
+  onPriceRangeChange: (min: number, max: number) => void;
+  onClearFilters: () => void;
   sortBy: string;
   onCategoryChange: (category: string) => void;
   onSearchChange: (search: string) => void;
@@ -13,10 +18,15 @@ interface ProductFiltersProps {
 const ProductFilters = ({
   selectedCategory,
   searchQuery,
+  selectedSupplier,
+  priceRange,
   sortBy,
   onCategoryChange,
   onSearchChange,
   onSortChange,
+  onSupplierChange,
+  onPriceRangeChange,
+  onClearFilters,
 }: ProductFiltersProps) => {
   return (
     <div className="product-filters">
@@ -77,17 +87,58 @@ const ProductFilters = ({
           </select>
         </div>
 
-        {/* Quick Stats - Bug: hardcoded values instead of dynamic */}
+        {/* Supplier Filter */}
         <div className="filter-section">
           <h3 className="filter-title p1-medium">Proveedores</h3>
-          <div className="supplier-list">
-            {suppliers.map((supplier) => (
-              <div key={supplier.id} className="supplier-item">
-                <span className="supplier-name l1">{supplier.name}</span>
-                <span className="supplier-count l1">{supplier.products}</span>
-              </div>
+          <select
+            value={selectedSupplier}
+            onChange={(e) => onSupplierChange(e.target.value)}
+            className="sort-select p1"
+          >
+            <option value="all">Todos</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
             ))}
+          </select>
+        </div>
+
+        {/* Price Range Filter */}
+        <div className="filter-section">
+          <h3 className="filter-title p1-medium">Rango de precios</h3>
+          <div
+            className="price-range-inputs"
+            style={{ display: "flex", gap: "8px" }}
+          >
+            <input
+              type="number"
+              placeholder="Mín"
+              value={priceRange.min}
+              onChange={(e) =>
+                onPriceRangeChange(Number(e.target.value), priceRange.max)
+              }
+              className="sort-select p1" // reutilizamos la misma clase para un estilo uniforme
+              style={{ flex: 1 }} // para que ocupe espacio equitativamente
+            />
+            <input
+              type="number"
+              placeholder="Máx"
+              value={priceRange.max}
+              onChange={(e) =>
+                onPriceRangeChange(priceRange.min, Number(e.target.value))
+              }
+              className="sort-select p1"
+              style={{ flex: 1 }}
+            />
           </div>
+        </div>
+
+        {/* Clear All Filters */}
+        <div className="filter-section">
+          <button className="btn btn-secondary cta1" onClick={onClearFilters}>
+            Limpiar filtros
+          </button>
         </div>
       </div>
     </div>
